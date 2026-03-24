@@ -101,3 +101,37 @@ def test_bind_processor_non_numeric():
     proc = pt.bind_processor(None)
     with pytest.raises(ValueError, match="Point coordinates must be numeric"):
         proc(("abc", "def"))
+
+
+def test_result_processor_geonames_andorra():
+    """
+    Round-trip every coordinate in the GeoNames Andorra dump through the
+    result processor offline — no database required.
+    Skipped automatically if the file is not present.
+    """
+    import csv
+    import os
+
+    geonames_path = "/tmp/geonames/AD.txt"
+    if not os.path.exists(geonames_path):
+        pytest.skip("GeoNames AD.txt not present — run curl/unzip first")
+
+    pt = PointType()
+    proc = pt.result_processor(None, None)
+
+    errors = []
+    with open(geonames_path, encoding="utf-8") as f:
+        reader = csv.reader(f, delimiter="\t")
+        for i, row in enumerate(reader):
+            try:
+                lat, lng = row[4], row[5]
+                point_str = f"({lng},{lat})"
+                result = proc(point_str)
+                assert isinstance(result, tuple)
+                assert len(result) == 2
+            except Exception as e:
+                errors.append((i, row[4], row[5], str(e)))
+
+    assert errors == [], f"{len(errors)} rows failed:\n" + "\n".join(
+        f"  row {i}: ({lat},{lng}) -> {err}" for i, lat, lng, err in errors
+    )
