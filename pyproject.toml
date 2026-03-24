@@ -40,6 +40,7 @@ dev = [
     "pytest-cov>=7.0.0",
     "covdefaults>=2.3.0",
     "alembic>=1.16.5",
+    "python-dotenv>=1.0.0",
 ]
 
 [tool.pyright]
