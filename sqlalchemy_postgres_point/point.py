@@ -73,7 +73,7 @@ class PointType(UserDefinedType):
         def process(value):
             if value is None:
                 return None
-            match = re.match(r"\(([^)]+),([^)]+)\)", value)
+            match = re.match(r"^\((-?[\d.]+),(-?[\d.]+)\)$", value)
             if match:
                 lng = float(match.group(1))
                 lat = float(match.group(2))

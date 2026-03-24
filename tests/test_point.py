@@ -76,3 +76,20 @@ def test_earth_distance_compilation():
     assert "<@>" in sql
     # Ensure the POINT literal/bind shape is present
     assert re.search(r"location\s*<@>", sql)
+
+
+def test_result_processor_three_values():
+    """Three-value string should raise clear Invalid POINT value error, not
+    confusing 'could not convert string to float' from the old greedy regex."""
+    pt = PointType()
+    proc = pt.result_processor(None, None)
+    with pytest.raises(ValueError, match="Invalid POINT value"):
+        proc("(10.0,45.0,99.0)")
+
+
+def test_result_processor_non_numeric():
+    """Non-numeric coordinates should raise clear Invalid POINT value error."""
+    pt = PointType()
+    proc = pt.result_processor(None, None)
+    with pytest.raises(ValueError, match="Invalid POINT value"):
+        proc("(abc,def)")
