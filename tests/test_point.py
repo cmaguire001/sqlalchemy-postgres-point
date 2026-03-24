@@ -107,14 +107,23 @@ def test_result_processor_geonames_andorra():
     """
     Round-trip every coordinate in the GeoNames Andorra dump through the
     result processor offline — no database required.
-    Skipped automatically if the file is not present.
+    Downloads automatically if not already present.
     """
     import csv
+    import io
     import os
+    import urllib.request
+    import zipfile
 
     geonames_path = "/tmp/geonames/AD.txt"
     if not os.path.exists(geonames_path):
-        pytest.skip("GeoNames AD.txt not present — run curl/unzip first")
+        os.makedirs("/tmp/geonames", exist_ok=True)
+        url = "https://download.geonames.org/export/dump/AD.zip"
+        with urllib.request.urlopen(url) as response:
+            zip_data = response.read()
+        with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
+            with zf.open("AD.txt") as src, open(geonames_path, "wb") as dst:
+                dst.write(src.read())
 
     pt = PointType()
     proc = pt.result_processor(None, None)
