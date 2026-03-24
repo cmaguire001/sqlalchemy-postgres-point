@@ -209,3 +209,14 @@ leaking internal Python exceptions.
 
 All errors are raised as `ValueError` so they can be caught and handled cleanly in
 application code.
+
+Real-World Coordinate Validation
+---------------------------------
+
+The test suite includes an offline stress test that downloads the GeoNames Andorra dataset
+(3,267 real-world coordinates) and round-trips every coordinate through `PointType`'s result
+processor without a database connection. The dataset is fetched automatically on first run
+and cached locally.
+```bash
+pytest tests/test_point.py::test_result_processor_geonames_andorra -v --no-cov
+```
