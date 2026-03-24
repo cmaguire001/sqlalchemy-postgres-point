@@ -220,3 +220,12 @@ and cached locally.
 ```bash
 pytest tests/test_point.py::test_result_processor_geonames_andorra -v --no-cov
 ```
+
+## Edge Case Test Coverage
+
+Four offline processor tests added in `tests/test_point_edge_cases.py`:
+
+1. **Precision round-trip** – high-precision float64 coords survive bind → result without drift
+2. **Exact boundaries** – ±180/±90 pass validation; 1 ULP outside raises `ValueError`
+3. **Anti-meridian** – coordinates near ±180° bind and parse back intact
+4. **Scientific notation** – documents a known bug where PostgreSQL's `1e-10` output breaks the result processor regex (`xfail`); includes the one-line fix
