@@ -185,3 +185,27 @@ MIT (see your project's LICENSE file if added later). Contributions welcome.
 ---
 
 *This project was created from [iloveitaly/python-package-template](https://github.com/iloveitaly/python-package-template)*
+
+Error Handling
+
+--------------
+
+`PointType` raises `ValueError` with a clear message for malformed input rather than
+leaking internal Python exceptions.
+
+**On write (bind/literal processor):**
+
+| Input | Error |
+|---|---|
+| Non-numeric coordinates e.g. `("abc", "def")` | `Point coordinates must be numeric` |
+| Non-finite values e.g. `(float("inf"), 0.0)` | `Point coordinates must be finite numbers` |
+
+**On read (result processor):**
+
+| Input | Error |
+|---|---|
+| Three-value string e.g. `"(10.0,45.0,99.0)"` | `Invalid POINT value` |
+| Non-numeric string e.g. `"(abc,def)"` | `Invalid POINT value` |
+
+All errors are raised as `ValueError` so they can be caught and handled cleanly in
+application code.

@@ -93,3 +93,11 @@ def test_result_processor_non_numeric():
     proc = pt.result_processor(None, None)
     with pytest.raises(ValueError, match="Invalid POINT value"):
         proc("(abc,def)")
+
+
+def test_bind_processor_non_numeric():
+    """Non-numeric coordinates in bind processor should raise clear error."""
+    pt = PointType()
+    proc = pt.bind_processor(None)
+    with pytest.raises(ValueError, match="Point coordinates must be numeric"):
+        proc(("abc", "def"))
