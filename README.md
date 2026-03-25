@@ -269,3 +269,5 @@ Four offline processor tests added in `tests/test_point_edge_cases.py`:
 2. **Exact boundaries** – ±180/±90 pass validation; 1 ULP outside raises `ValueError`
 3. **Anti-meridian** – coordinates near ±180° bind and parse back intact
 4. **Scientific notation** – documents a known bug where PostgreSQL's `1e-10` output breaks the result processor regex (`xfail`); includes the one-line fix
+5. **(Lat, Lng) swap detection** – passing arguments in the wrong order (`Point(lng, lat)`) is a common error. The library’s validation can often catch this if the longitude value is outside the valid latitude range of [-90, 90].
+
