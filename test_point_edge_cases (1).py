@@ -147,11 +147,7 @@ _SCI_REGEX = re.compile(
 
 
 @pytest.mark.parametrize("db_string,desc", SCI_NOTATION_CASES)
-@pytest.mark.xfail(
-    reason="result_processor regex does not handle scientific notation. "
-           "Fix: use r'(-?[\\d.]+(?:[eE][+-]?\\d+)?)' in point.py",
-    strict=True,
-)
+
 def test_scientific_notation_is_parsed(db_string, desc):
     """PostgreSQL may return POINT coords in scientific notation — must not raise."""
     parsed = result(db_string)
