@@ -47,6 +47,7 @@ dev = [
 exclude = ["examples/", "playground/", "tmp/", ".venv/", "tests/"]
 
 [tool.pytest.ini_options]
+markers = ["integration: mark test as integration test"]
 addopts = "--cov --cov-report=term-missing --cov-report=html:tmp/htmlcov"
 
 [tool.coverage.run]

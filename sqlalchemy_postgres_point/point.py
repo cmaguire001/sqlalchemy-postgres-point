@@ -142,7 +142,7 @@ def validate_points(values: Iterable[Any]) -> dict[str, Any]:
             swap_count += 1
         if analysis.ambiguous:
             ambiguous_count += 1
-        if not analysis.valid:
+        if not analysis.valid and not analysis.swap_detected:
             invalid_count += 1
         if (not analysis.valid) or analysis.swap_detected or analysis.ambiguous:
             flagged_rows.append(

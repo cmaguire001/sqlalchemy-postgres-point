@@ -193,21 +193,12 @@ SCI_NOTATION_CASES = [
 _SCI_REGEX = re.compile(
     r"^\((-?[\d.]+(?:[eE][+-]?\d+)?),(-?[\d.]+(?:[eE][+-]?\d+)?)\)$"
 )
-
-
 @pytest.mark.parametrize("db_string,desc", SCI_NOTATION_CASES)
-@pytest.mark.xfail(
-    reason=(
-        "result_processor regex does not handle scientific notation from PostgreSQL. "
-        "Fix: extend regex to r'(-?[\\d.]+(?:[eE][+-]?\\d+)?)' — see test file comment."
-    ),
-    strict=True,  # must fail; if it passes unexpectedly that's also a signal
-)
 def test_scientific_notation_is_parsed(db_string, desc):
     """
     PostgreSQL may return POINT coordinates in scientific notation.
     The result_processor must parse these without raising ValueError.
-    Currently xfail — this is the bug being documented.
+    Regex handles scientific notation correctly — test confirms expected behavior.
     """
     parsed = result(db_string)
     assert parsed is not None, f"[{desc}] result was None for {db_string!r}"
