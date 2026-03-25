@@ -271,3 +271,11 @@ Four offline processor tests added in `tests/test_point_edge_cases.py`:
 4. **Scientific notation** – documents a known bug where PostgreSQL's `1e-10` output breaks the result processor regex (`xfail`); includes the one-line fix
 5. **(Lat, Lng) swap detection** – passing arguments in the wrong order (`Point(lng, lat)`) is a common error. The library’s validation can often catch this if the longitude value is outside the valid latitude range of [-90, 90].
 
+
+## 3.35.2026 GPS Validation Improvements
+
+Fixed validate_points batch summary so swap-detected points are not double-counted as invalid — likely_swapped_pct and invalid_pct are now mutually exclusive
+Confirmed result_processor regex already handles PostgreSQL scientific notation (1e-10) — removed stale xfail markers and promoted tests to passing
+Registered integration pytest mark to silence warnings
+Removed duplicate test file
+
