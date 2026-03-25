@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version="0.6" generator="Overpass API">
+  <note>This is a tiny sample in raw OSM XML format for offline tests.</note>
+  <meta osm_base="2026-01-01T00:00:00Z"/>
+  <node id="1001" lat="42.50779" lon="1.52109"/>
+  <node id="1002" lat="41.38740" lon="2.16860"/>
+  <node id="1003" lat="40.41678" lon="-3.70379"/>
+  <node id="1004" lat="37.77493" lon="-122.41942"/>
+  <node id="1005" lat="51.50735" lon="-0.12776"/>
+</osm>

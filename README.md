@@ -21,6 +21,9 @@ Features
 * Literal rendering for DDL / SQL emission.
 * Custom comparator exposing the PostgreSQL earth-distance `<@>` operator (returns a `Float`).
 * `cache_ok = True` for SQLAlchemy 2.x compilation caching.
+* Optional strict mode for ambiguous coordinate order detection (warn or error).
+* Point confidence scoring via `analyze_point(...)`.
+* Batch data-quality auditing via `validate_points(...)`.
 
 Installation
 ------------
@@ -113,6 +116,37 @@ DROP EXTENSION IF EXISTS cube;
 2. Copy the `upgrade()` and `downgrade()` functions above into your new migration file
 3. Run the migration: `alembic upgrade head`
 
+
+
+Strict mode + confidence scoring
+--------------------------------
+
+```python
+from sqlalchemy_postgres_point import PointType, analyze_point, validate_points
+
+# Strict mode can warn (default strict_mode) or raise with strict_mode="error"
+location_type = PointType(strict=True, strict_mode="warn")
+
+analysis = analyze_point((12.2, 41.9))
+print(analysis.valid, analysis.ambiguous, analysis.confidence)
+
+summary = validate_points([(12.2, 41.9), (41.9, 12.2), (181.0, 0.0)])
+print(summary["likely_swapped_pct"], summary["invalid_pct"], summary["ambiguous_pct"])
+```
+
+`analyze_point(...)` returns metadata such as:
+
+```python
+{
+  "valid": True,
+  "swap_detected": False,
+  "confidence": 0.62,
+  "ambiguous": True,
+  "normalized": (12.2, 41.9),
+  "issues": (),
+}
+```
+
 Returned Python Values
 ----------------------
 
@@ -125,6 +159,12 @@ Run the test suite with:
 
 ```bash
 uv run pytest -q
+```
+
+Raw OpenStreetMap extract smoke test (offline sample XML included in repo):
+
+```bash
+pytest tests/test_point.py::test_result_processor_osm_raw_extract_nodes -q
 ```
 
 ## Alembic Integration
@@ -173,7 +213,7 @@ Project Structure
 Limitations / Notes
 -------------------
 
-* No automatic validation of longitude/latitude ranges; add your own if required.
+* Strict mode can flag ambiguous coordinate order in write/read processors.
 * Uses simple textual representation `(lng,lat)` accepted by PostgreSQL `POINT` input parser.
 * If you need advanced spatial indexing / SRID support, look at GeoAlchemy2/PostGIS instead.
 
