@@ -510,9 +510,11 @@ summary = <span class="fn">validate_points</span>([
 
         <div class="presets">
           <button class="preset-btn" onclick="loadPreset(1)">Valid NYC</button>
-          <button class="preset-btn" onclick="loadPreset(2)">Swapped Tokyo</button>
-          <button class="preset-btn" onclick="loadPreset(3)">Bad lng</button>
-          <button class="preset-btn" onclick="loadPreset(4)">Ambiguous</button>
+          <button class="preset-btn" onclick="loadPreset(2)">Swapped NYC</button>
+          <button class="preset-btn" onclick="loadPreset(3)">Tokyo</button>
+          <button class="preset-btn" onclick="loadPreset(4)">Bad lng</button>
+          <button class="preset-btn" onclick="loadPreset(5)">Ambiguous</button>
+          <button class="preset-btn" onclick="loadPreset(6)">1e-10</button>
         </div>
 
         <div class="input-row">
@@ -579,6 +581,73 @@ summary = <span class="fn">validate_points</span>([
       <span><span class="legend-dot" style="background:var(--amber)"></span>Likely swapped</span>
       <span><span class="legend-dot" style="background:var(--red)"></span>Invalid (clipped to edge)</span>
       <span><span class="legend-dot" style="background:var(--accent2)"></span>Ambiguous</span>
+    </div>
+  </section>
+
+  <!-- MESSY GPS EXPLAINER -->
+  <section class="fade-in">
+    <div class="section-label">// 06 — messy data patterns</div>
+    <h2>All the ways GPS data goes wrong</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
+
+      <div class="step">
+        <div class="step-num" style="color:var(--red)">PATTERN 01</div>
+        <h3>Hard out-of-range</h3>
+        <p>Longitude &gt; 180 or &lt; −180, or latitude &gt; 90 or &lt; −90. No valid interpretation exists. <code>analyze_point()</code> sets <code>valid=False</code> and populates <code>issues[]</code> with the offending axis.</p>
+        <div style="margin-top:12px;font-size:11px;color:var(--red);font-family:'JetBrains Mono',monospace">(181.0, 0.0) → INVALID</div>
+      </div>
+
+      <div class="step">
+        <div class="step-num" style="color:var(--amber)">PATTERN 02</div>
+        <h3>Swapped (lat, lng)</h3>
+        <p>The most common real-world mistake. First value is in lat range [−90,90], second is in lng-only range (90,180]. The coordinates are real — just transposed. Flagged as <code>swap_detected=True</code>, <strong>not</strong> invalid.</p>
+        <div style="margin-top:12px;font-size:11px;color:var(--amber);font-family:'JetBrains Mono',monospace">(35.68, 139.69) → SWAPPED (Tokyo)</div>
+      </div>
+
+      <div class="step">
+        <div class="step-num" style="color:var(--accent2)">PATTERN 03</div>
+        <h3>Ambiguous order</h3>
+        <p>Both values fall in [−90, 90] so either could be latitude. Common with points in Europe, Africa, or central Asia. The library flags <code>ambiguous=True</code> in strict mode to surface these for human review.</p>
+        <div style="margin-top:12px;font-size:11px;color:var(--accent2);font-family:'JetBrains Mono',monospace">(45.0, 60.0) → AMBIGUOUS</div>
+      </div>
+
+      <div class="step">
+        <div class="step-num" style="color:var(--accent)">PATTERN 04</div>
+        <h3>Scientific notation</h3>
+        <p>PostgreSQL can return very small coordinates (near 0,0) in scientific notation: <code>(1e-10, 2e-10)</code>. A naive regex like <code>(-?[\d.]+)</code> fails to parse these. The fix: extend to <code>(-?[\d.]+(?:[eE][+-]?\d+)?)</code>.</p>
+        <div style="margin-top:12px;font-size:11px;color:var(--accent);font-family:'JetBrains Mono',monospace">(1e-10, 2e-10) → parsed ✓</div>
+      </div>
+
+      <div class="step">
+        <div class="step-num" style="color:var(--muted)">PATTERN 05</div>
+        <h3>NaN / Infinity</h3>
+        <p>Float overflow, missing sensor data, or divide-by-zero upstream can produce <code>NaN</code> or <code>inf</code>. The library checks <code>math.isfinite()</code> on both values before range checks — these fail immediately with a clear error.</p>
+        <div style="margin-top:12px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">(NaN, 40.0) → ValueError</div>
+      </div>
+
+      <div class="step">
+        <div class="step-num" style="color:var(--muted)">PATTERN 06</div>
+        <h3>Wrong tuple length</h3>
+        <p>A 3D point <code>(x, y, z)</code> or a bare scalar passed instead of a 2-tuple. The library validates length before anything else and raises <code>ValueError: expected 2-length tuple</code> immediately.</p>
+        <div style="margin-top:12px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">(-74.0, 40.7, 0.0) → ValueError</div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:32px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:28px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);line-height:2">
+        <div style="color:var(--text);font-size:14px;font-weight:600;margin-bottom:16px">Decision tree: how the library classifies any point</div>
+        <div><span style="color:var(--accent)">1.</span> Is it a 2-tuple of finite floats? → No → <span style="color:var(--red)">ValueError immediately</span></div>
+        <div><span style="color:var(--accent)">2.</span> Is lng &gt; 180 or lat &gt; 90 (hard OOB)?</div>
+        <div style="padding-left:20px">→ Does swapping fix it? → <span style="color:var(--amber)">SWAPPED</span></div>
+        <div style="padding-left:20px">→ Nope → <span style="color:var(--red)">INVALID</span></div>
+        <div><span style="color:var(--accent)">3.</span> Are both values in [−90, 90]? → <span style="color:var(--accent2)">AMBIGUOUS</span> (strict mode warns)</div>
+        <div><span style="color:var(--accent)">4.</span> lng clearly outside lat range (|lng| &gt; 90)? → <span style="color:var(--green)">VALID</span></div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);color:var(--accent)">
+          Key principle: swapped ≠ invalid. They require different remediation — one is a bug in the caller, the other is genuinely corrupt data.
+        </div>
+      </div>
     </div>
   </section>
 
@@ -649,10 +718,12 @@ function buildBatch() {
 
 // ─── SINGLE VALIDATOR ───────────────────────────────────────────────────────
 const PRESETS = [
-  { lng: -74.006, lat: 40.7128,  note: "New York City — valid coords" },
-  { lng:  40.0,   lat: 139.6917, note: "Tokyo passed as (lat,lng) — likely swapped" },
-  { lng: 181.0,   lat: 0.0,      note: "lng=181 exceeds ±180 range" },
-  { lng:  45.0,   lat: 60.0,     note: "Both values in lat range — ambiguous" },
+  { lng: -74.006,  lat:  40.7128,  label: "Valid NYC",        note: "New York City — lng clearly outside lat range" },
+  { lng:  40.7128, lat: -74.006,   label: "Swapped NYC",      note: "Same coords, wrong order — swap detected" },
+  { lng: 139.6917, lat:  35.6895,  label: "Tokyo",            note: "lng=139 unambiguously valid, lat=35 in range ✓" },
+  { lng: 181.0,    lat:   0.0,     label: "Bad lng",          note: "lng=181 strictly exceeds ±180" },
+  { lng:  45.0,    lat:  60.0,     label: "Ambiguous",        note: "Both values in [−90,90] — order uncertain" },
+  { lng:  1e-10,   lat:  2e-10,    label: "Scientific",       note: "PostgreSQL may return very small coords in 1e-10 notation" },
 ];
 
 function loadPreset(n) {
@@ -662,9 +733,17 @@ function loadPreset(n) {
   validatePoint();
 }
 
+function parseCoord(val) {
+  // Handle scientific notation strings like "1e-10"
+  if (typeof val === 'string') return parseFloat(val);
+  return val;
+}
+
 function validatePoint() {
-  const lng = parseFloat(document.getElementById('lng-input').value);
-  const lat = parseFloat(document.getElementById('lat-input').value);
+  const lngRaw = document.getElementById('lng-input').value;
+  const latRaw = document.getElementById('lat-input').value;
+  const lng = parseCoord(lngRaw);
+  const lat = parseCoord(latRaw);
   const box = document.getElementById('single-result');
 
   if (isNaN(lng) || isNaN(lat)) {
@@ -677,29 +756,38 @@ function validatePoint() {
 
   const lngOOB = lng < -180 || lng > 180;
   const latOOB = lat < -90  || lat > 90;
-  const looksSwapped = (Math.abs(lng) <= 90 && Math.abs(lat) > 90) ||
-                       (Math.abs(lng) <= 90 && Math.abs(lat) <= 180 && Math.abs(lng) < Math.abs(lat) && Math.abs(lat) > 90);
+
+  // Swap detection: first value is in lat range but second is in lng-only range
+  // e.g. (40, 139) — first looks like lat, second is unambiguously lng
+  const looksSwapped = !lngOOB && !latOOB === false
+    ? false
+    : (Math.abs(lng) <= 90 && Math.abs(lat) > 90 && Math.abs(lat) <= 180);
+
+  // Scientific notation detection
+  const isSci = /[eE]/.test(lngRaw) || /[eE]/.test(latRaw);
 
   if (lngOOB || latOOB) {
-    // Check if it looks like a swap first
-    const possibleSwapLng = lat, possibleSwapLat = lng;
-    if (!looksSwapped && (lngOOB || latOOB)) {
+    if (looksSwapped) {
+      status = 'swapped';
+      lines.push(`Looks like (lat, lng) was passed instead of (lng, lat)`);
+      lines.push(`Did you mean: (lng=${lat}, lat=${lng})?`);
+    } else {
       status = 'invalid';
       if (lngOOB) lines.push(`lng ${lng} out of range [−180, 180]`);
       if (latOOB) lines.push(`lat ${lat} out of range [−90, 90]`);
-    } else {
-      status = 'swapped';
-      lines.push(`Coordinates appear to be (lat, lng) instead of (lng, lat)`);
-      lines.push(`Expected order: (lng=${lat}, lat=${lng})`);
     }
   } else if (Math.abs(lng) <= 90 && Math.abs(lat) <= 90) {
+    // Both in lat range — ambiguous unless one is clearly not lat-like
     status = 'ambiguous';
     lines.push('Both values fall within latitude range [−90, 90]');
     lines.push('Cannot confirm (lng, lat) order with confidence');
+    if (isSci) lines.push('Scientific notation parsed correctly ✓');
   } else {
+    // lng is outside lat range (90 < |lng| <= 180) — unambiguously valid
     status = 'valid';
     lines.push(`lng ${lng} ∈ [−180, 180] ✓`);
     lines.push(`lat ${lat} ∈ [−90, 90] ✓`);
+    if (isSci) lines.push(`Scientific notation parsed correctly ✓  (e.g. 1e-10 → ${lng})`);
     lines.push(`PostgreSQL: POINT(${lng} ${lat})`);
   }
 
@@ -707,7 +795,6 @@ function validatePoint() {
   box.className = `result-box ${status}`;
   box.innerHTML = `<span class="badge ${status}">${cfg.label}</span><br>${lines.map(l=>`<span style="color:var(--muted)">${l}</span>`).join('<br>')}`;
 
-  // update globe highlight
   if (status === 'valid') plotUserPoint(lng, lat, cfg.color);
 }
 
