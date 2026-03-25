@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sqlalchemy-postgres-point — GPS Validation</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --surface: #111720;
+    --surface2: #1a2232;
+    --border: #1e2d42;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --green: #00e5a0;
+    --red: #ff4757;
+    --amber: #ffb830;
+    --text: #e8f0f8;
+    --muted: #5a7a9a;
+    --code-bg: #0d1520;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid bg */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
+
+  /* HERO */
+  header {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.1s forwards;
+  }
+
+  h1 {
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.03em;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.2s forwards;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    margin-top: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 560px;
+    line-height: 1.7;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.3s forwards;
+  }
+
+  .hero-pills {
+    display: flex;
+    gap: 12px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.4s forwards;
+  }
+
+  .pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 6px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+  }
+
+  /* SECTIONS */
+  section { padding: 72px 0; border-bottom: 1px solid var(--border); }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 40px;
+  }
+
+  /* HOW IT WORKS */
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .step:hover { border-color: var(--accent); }
+
+  .step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+  }
+
+  .step h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+
+  .step p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .code-block .file-label {
+    position: absolute;
+    top: 12px; right: 16px;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .kw { color: #c792ea; }
+  .fn { color: #82aaff; }
+  .str { color: #c3e88d; }
+  .cm { color: #546e7a; font-style: italic; }
+  .num { color: var(--amber); }
+  .cls { color: #ffcb6b; }
+
+  /* LIVE DEMO */
+  .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 700px) { .demo-grid { grid-template-columns: 1fr; } }
+
+  .demo-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+  }
+
+  .demo-panel h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .input-row { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
+
+  .input-row label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    width: 28px;
+    flex-shrink: 0;
+  }
+
+  input[type="number"], input[type="text"] {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 8px 12px;
+    flex: 1;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="number"]:focus, input[type="text"]:focus { border-color: var(--accent); }
+
+  .btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 2px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px 24px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 8px;
+    letter-spacing: 0.05em;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .btn:hover { opacity: 0.85; }
+  .btn:active { transform: scale(0.98); }
+
+  .result-box {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--code-bg);
+    border-radius: 4px;
+    border-left: 3px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    min-height: 80px;
+    transition: border-color 0.3s;
+  }
+
+  .result-box.valid { border-color: var(--green); }
+  .result-box.invalid { border-color: var(--red); }
+  .result-box.swapped { border-color: var(--amber); }
+  .result-box.ambiguous { border-color: var(--accent2); }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .badge.valid { background: rgba(0,229,160,0.15); color: var(--green); }
+  .badge.invalid { background: rgba(255,71,87,0.15); color: var(--red); }
+  .badge.swapped { background: rgba(255,184,48,0.15); color: var(--amber); }
+  .badge.ambiguous { background: rgba(255,107,53,0.15); color: var(--accent2); }
+
+  /* BATCH */
+  .batch-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  .batch-table th {
+    text-align: left;
+    padding: 10px 14px;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .batch-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .batch-table tr:hover td { background: var(--surface2); }
+
+  .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+  }
+
+  .dot-valid { background: var(--green); }
+  .dot-invalid { background: var(--red); }
+  .dot-swapped { background: var(--amber); }
+  .dot-ambiguous { background: var(--accent2); }
+
+  .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 28px; }
+  @media (max-width: 600px) { .summary-cards { grid-template-columns: repeat(2,1fr); } }
+
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .summary-card .val {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .summary-card .lbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* MAP */
+  #map-section .map-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    height: 400px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas#globe { width: 100%; height: 100%; display: block; }
+
+  .map-legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  .map-legend span { display: flex; align-items: center; gap: 6px; }
+
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* FOOTER */
+  footer {
+    padding: 48px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: gap;
+  }
+
+  footer a { color: var(--accent); text-decoration: none; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  /* preset buttons */
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+
+  .preset-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HERO -->
+  <header>
+    <div class="tag">Python · SQLAlchemy · PostgreSQL</div>
+    <h1>sqlalchemy-<br><span>postgres-point</span></h1>
+    <p class="subtitle">A custom SQLAlchemy type that stores, validates, and diagnoses GPS coordinate data — catching swapped lat/lng before it hits your database.</p>
+    <div class="hero-pills">
+      <div class="pill">PointType()</div>
+      <div class="pill">validate_points()</div>
+      <div class="pill">analyze_point()</div>
+      <div class="pill">scientific notation ✓</div>
+      <div class="pill">strict mode</div>
+    </div>
+  </header>
+
+  <!-- HOW IT WORKS -->
+  <section class="fade-in">
+    <div class="section-label">// 01 — overview</div>
+    <h2>How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">STEP 01</div>
+        <h3>Define your model</h3>
+        <p>Add <code>PointType()</code> to any SQLAlchemy column. Pass a <code>(lng, lat)</code> tuple — the type handles the rest.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">STEP 02</div>
+        <h3>Validation on write</h3>
+        <p>On bind, coordinates are range-checked. Out-of-bounds values raise <code>ValueError</code> immediately — no silent corruption.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">STEP 03</div>
+        <h3>Swap detection</h3>
+        <p>When a likely <code>(lat, lng)</code> is passed instead of <code>(lng, lat)</code>, the type flags it separately from hard-invalid data.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">STEP 04</div>
+        <h3>Batch analysis</h3>
+        <p>Run <code>validate_points()</code> on a list of rows to get a summary report: swap %, invalid %, ambiguous %, and flagged rows.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CODE WALKTHROUGH -->
+  <section class="fade-in">
+    <div class="section-label">// 02 — code</div>
+    <h2>Usage</h2>
+
+    <div class="code-block" style="margin-bottom:20px">
+      <span class="file-label">models.py</span>
+<span class="kw">from</span> sqlalchemy <span class="kw">import</span> Column, Integer
+<span class="kw">from</span> sqlalchemy_postgres_point <span class="kw">import</span> <span class="cls">PointType</span>
+
+<span class="kw">class</span> <span class="cls">Location</span>(Base):
+    __tablename__ = <span class="str">"locations"</span>
+    id = <span class="cls">Column</span>(<span class="cls">Integer</span>, primary_key=<span class="kw">True</span>)
+    coords = <span class="cls">Column</span>(<span class="cls">PointType</span>())   <span class="cm"># stores as PostgreSQL POINT</span>
+
+<span class="cm"># Write — pass (lng, lat)</span>
+location = <span class="cls">Location</span>(coords=(<span class="num">-120.0</span>, <span class="num">40.0</span>))   <span class="cm"># ✓ valid</span>
+location = <span class="cls">Location</span>(coords=(<span class="num">40.0</span>, <span class="num">-120.0</span>))   <span class="cm"># ⚠ flagged as likely swapped</span>
+location = <span class="cls">Location</span>(coords=(<span class="num">181.0</span>, <span class="num">0.0</span>))    <span class="cm"># ✗ raises ValueError</span>
+    </div>
+
+    <div class="code-block">
+      <span class="file-label">validation.py</span>
+<span class="kw">from</span> sqlalchemy_postgres_point <span class="kw">import</span> <span class="fn">validate_points</span>
+
+summary = <span class="fn">validate_points</span>([
+    (<span class="num">1.0</span>,   <span class="num">2.0</span>),       <span class="cm"># ✓ valid</span>
+    (<span class="num">40.0</span>,  <span class="num">-120.0</span>),    <span class="cm"># ⚠ likely swapped (lat, lng)</span>
+    (<span class="num">181.0</span>, <span class="num">0.0</span>),       <span class="cm"># ✗ invalid longitude</span>
+    (<span class="num">50.0</span>,  <span class="num">20.0</span>),       <span class="cm"># ~ ambiguous (both in lat range)</span>
+])
+
+<span class="cm"># summary["invalid_pct"]        → 25.0  (swapped ≠ invalid)</span>
+<span class="cm"># summary["likely_swapped_pct"] → 25.0</span>
+<span class="cm"># summary["ambiguous_pct"]      → 25.0</span>
+    </div>
+  </section>
+
+  <!-- LIVE DEMO -->
+  <section id="demo-section" class="fade-in">
+    <div class="section-label">// 03 — live demo</div>
+    <h2>Try it</h2>
+
+    <div class="demo-grid">
+      <div class="demo-panel">
+        <h3>Single Point Validator</h3>
+
+        <div class="presets">
+          <button class="preset-btn" onclick="loadPreset(1)">Valid NYC</button>
+          <button class="preset-btn" onclick="loadPreset(2)">Swapped Tokyo</button>
+          <button class="preset-btn" onclick="loadPreset(3)">Bad lng</button>
+          <button class="preset-btn" onclick="loadPreset(4)">Ambiguous</button>
+        </div>
+
+        <div class="input-row">
+          <label>lng</label>
+          <input type="number" id="lng-input" placeholder="-74.006" step="any" value="-74.006">
+        </div>
+        <div class="input-row">
+          <label>lat</label>
+          <input type="number" id="lat-input" placeholder="40.7128" step="any" value="40.7128">
+        </div>
+        <button class="btn" onclick="validatePoint()">Validate →</button>
+
+        <div class="result-box" id="single-result">
+          <span style="color:var(--muted)">Enter coordinates and hit Validate.</span>
+        </div>
+      </div>
+
+      <div class="demo-panel">
+        <h3>What each status means</h3>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;line-height:2.2;color:var(--muted)">
+          <div><span class="badge valid">VALID</span> lng ∈ [−180,180], lat ∈ [−90,90]</div>
+          <div><span class="badge invalid">INVALID</span> coordinate strictly out of range</div>
+          <div><span class="badge swapped">SWAPPED</span> looks like (lat,lng) was passed instead of (lng,lat) — flagged separately from invalid</div>
+          <div><span class="badge ambiguous">AMBIGUOUS</span> both values fall in lat range; order uncertain</div>
+        </div>
+        <div style="margin-top:24px;padding:16px;background:var(--code-bg);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8">
+          <strong style="color:var(--accent)">Key insight:</strong><br>
+          A swapped point is NOT the same as an invalid point. (40, −120) is real GPS data — just written in the wrong order. The library tracks these separately so your data pipeline can handle them differently.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BATCH DEMO -->
+  <section class="fade-in">
+    <div class="section-label">// 04 — batch analysis</div>
+    <h2>Sample batch report</h2>
+
+    <table class="batch-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Input (lng, lat)</th>
+          <th>Status</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="batch-tbody">
+      </tbody>
+    </table>
+
+    <div class="summary-cards" id="summary-cards"></div>
+  </section>
+
+  <!-- MAP -->
+  <section id="map-section" class="fade-in">
+    <div class="section-label">// 05 — visualization</div>
+    <h2>Points on the globe</h2>
+    <div class="map-container">
+      <canvas id="globe"></canvas>
+    </div>
+    <div class="map-legend">
+      <span><span class="legend-dot" style="background:var(--green)"></span>Valid</span>
+      <span><span class="legend-dot" style="background:var(--amber)"></span>Likely swapped</span>
+      <span><span class="legend-dot" style="background:var(--red)"></span>Invalid (clipped to edge)</span>
+      <span><span class="legend-dot" style="background:var(--accent2)"></span>Ambiguous</span>
+    </div>
+  </section>
+
+  <footer>
+    <span>sqlalchemy-postgres-point · MIT License</span>
+    <a href="https://github.com/cmaguire001/sqlalchemy-postgres-point" target="_blank">github.com/cmaguire001 →</a>
+  </footer>
+
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const BATCH = [
+  { lng:  -74.006,  lat:  40.7128, label: "New York City",       status: "valid"     },
+  { lng:   40.0,    lat: -120.0,   label: "Swapped CA coord",    status: "swapped"   },
+  { lng:  181.0,    lat:   0.0,    label: "lon=181 out of range",status: "invalid"   },
+  { lng:   50.0,    lat:  20.0,    label: "Both in lat range",   status: "ambiguous" },
+  { lng: -122.419,  lat:  37.775,  label: "San Francisco",       status: "valid"     },
+  { lng:    2.349,  lat:  48.864,  label: "Paris",               status: "valid"     },
+  { lng:  151.209,  lat: -33.869,  label: "Sydney (correct)",    status: "valid"     },
+  { lng:  -33.869,  lat: 151.209,  label: "Sydney (swapped)",    status: "swapped"   },
+  { lng:    0.0,    lat:  95.0,    label: "lat=95 invalid",      status: "invalid"   },
+  { lng:   45.0,    lat:  45.0,    label: "45°N 45°E ambiguous", status: "ambiguous" },
+];
+
+const STATUS_CONFIG = {
+  valid:     { color: "var(--green)",  dot: "dot-valid",     label: "VALID"     },
+  invalid:   { color: "var(--red)",    dot: "dot-invalid",   label: "INVALID"   },
+  swapped:   { color: "var(--amber)",  dot: "dot-swapped",   label: "SWAPPED"   },
+  ambiguous: { color: "var(--accent2)",dot: "dot-ambiguous", label: "AMBIGUOUS" },
+};
+
+// ─── BATCH TABLE ────────────────────────────────────────────────────────────
+function buildBatch() {
+  const tbody = document.getElementById('batch-tbody');
+  BATCH.forEach((row, i) => {
+    const cfg = STATUS_CONFIG[row.status];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-family:'JetBrains Mono',monospace">${String(i).padStart(2,'0')}</td>
+      <td style="font-family:'JetBrains Mono',monospace">(${row.lng}, ${row.lat})</td>
+      <td><span class="status-dot ${cfg.dot}"></span><span class="badge ${row.status}">${cfg.label}</span></td>
+      <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px">${row.label}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const counts = { valid:0, invalid:0, swapped:0, ambiguous:0 };
+  BATCH.forEach(r => counts[r.status]++);
+  const total = BATCH.length;
+
+  const cards = [
+    { key:'valid',     label:'Valid',    color:'var(--green)'  },
+    { key:'swapped',   label:'Swapped',  color:'var(--amber)'  },
+    { key:'invalid',   label:'Invalid',  color:'var(--red)'    },
+    { key:'ambiguous', label:'Ambiguous',color:'var(--accent2)'},
+  ];
+
+  const container = document.getElementById('summary-cards');
+  cards.forEach(c => {
+    const pct = Math.round(counts[c.key] / total * 100);
+    const div = document.createElement('div');
+    div.className = 'summary-card';
+    div.innerHTML = `<div class="val" style="color:${c.color}">${pct}%</div><div class="lbl">${c.label}</div>`;
+    container.appendChild(div);
+  });
+}
+
+// ─── SINGLE VALIDATOR ───────────────────────────────────────────────────────
+const PRESETS = [
+  { lng: -74.006, lat: 40.7128,  note: "New York City — valid coords" },
+  { lng:  40.0,   lat: 139.6917, note: "Tokyo passed as (lat,lng) — likely swapped" },
+  { lng: 181.0,   lat: 0.0,      note: "lng=181 exceeds ±180 range" },
+  { lng:  45.0,   lat: 60.0,     note: "Both values in lat range — ambiguous" },
+];
+
+function loadPreset(n) {
+  const p = PRESETS[n-1];
+  document.getElementById('lng-input').value = p.lng;
+  document.getElementById('lat-input').value = p.lat;
+  validatePoint();
+}
+
+function validatePoint() {
+  const lng = parseFloat(document.getElementById('lng-input').value);
+  const lat = parseFloat(document.getElementById('lat-input').value);
+  const box = document.getElementById('single-result');
+
+  if (isNaN(lng) || isNaN(lat)) {
+    box.className = 'result-box';
+    box.innerHTML = '<span style="color:var(--muted)">Enter valid numbers.</span>';
+    return;
+  }
+
+  let status, lines = [];
+
+  const lngOOB = lng < -180 || lng > 180;
+  const latOOB = lat < -90  || lat > 90;
+  const looksSwapped = (Math.abs(lng) <= 90 && Math.abs(lat) > 90) ||
+                       (Math.abs(lng) <= 90 && Math.abs(lat) <= 180 && Math.abs(lng) < Math.abs(lat) && Math.abs(lat) > 90);
+
+  if (lngOOB || latOOB) {
+    // Check if it looks like a swap first
+    const possibleSwapLng = lat, possibleSwapLat = lng;
+    if (!looksSwapped && (lngOOB || latOOB)) {
+      status = 'invalid';
+      if (lngOOB) lines.push(`lng ${lng} out of range [−180, 180]`);
+      if (latOOB) lines.push(`lat ${lat} out of range [−90, 90]`);
+    } else {
+      status = 'swapped';
+      lines.push(`Coordinates appear to be (lat, lng) instead of (lng, lat)`);
+      lines.push(`Expected order: (lng=${lat}, lat=${lng})`);
+    }
+  } else if (Math.abs(lng) <= 90 && Math.abs(lat) <= 90) {
+    status = 'ambiguous';
+    lines.push('Both values fall within latitude range [−90, 90]');
+    lines.push('Cannot confirm (lng, lat) order with confidence');
+  } else {
+    status = 'valid';
+    lines.push(`lng ${lng} ∈ [−180, 180] ✓`);
+    lines.push(`lat ${lat} ∈ [−90, 90] ✓`);
+    lines.push(`PostgreSQL: POINT(${lng} ${lat})`);
+  }
+
+  const cfg = STATUS_CONFIG[status];
+  box.className = `result-box ${status}`;
+  box.innerHTML = `<span class="badge ${status}">${cfg.label}</span><br>${lines.map(l=>`<span style="color:var(--muted)">${l}</span>`).join('<br>')}`;
+
+  // update globe highlight
+  if (status === 'valid') plotUserPoint(lng, lat, cfg.color);
+}
+
+// ─── GLOBE ──────────────────────────────────────────────────────────────────
+function initGlobe() {
+  const canvas = document.getElementById('globe');
+  const container = canvas.parentElement;
+  canvas.width  = container.offsetWidth  * devicePixelRatio;
+  canvas.height = container.offsetHeight * devicePixelRatio;
+  canvas.style.width  = container.offsetWidth  + 'px';
+  canvas.style.height = container.offsetHeight + 'px';
+
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2;
+  const R = Math.min(W,H) * 0.38;
+
+  let rotation = 0;
+  let userPoint = null;
+
+  window.plotUserPoint = (lng, lat, color) => {
+    userPoint = { lng, lat, color };
+  };
+
+  const POINTS = BATCH.map(p => ({
+    lng: p.status === 'invalid' ? Math.max(-180, Math.min(180, p.lng)) : p.lng,
+    lat: p.status === 'invalid' ? Math.max(-90,  Math.min(90,  p.lat)) : p.lat,
+    color: STATUS_CONFIG[p.status].color,
+    label: p.label,
+    status: p.status,
+  }));
+
+  // Rough continent outlines as lat/lng polylines
+  const CONTINENTS = [
+    // North America outline (simplified)
+    [[-125,49],[-67,47],[-52,47],[-53,46],[-55,44],[-66,44],[-80,25],[-87,15],[-83,10],[-78,8],[-77,8],[-80,10],[-85,11],[-92,15],[-88,16],[-90,21],[-104,19],[-110,23],[-117,32],[-117,49],[-125,49]],
+    // South America
+    [[-81,8],[-63,11],[-50,5],[-35,-8],[-35,-30],[-53,-33],[-68,-55],[-75,-55],[-80,-50],[-78,-2],[-81,8]],
+    // Europe
+    [[2,51],[30,70],[35,70],[40,65],[30,60],[26,65],[22,65],[18,68],[15,68],[5,58],[0,51],[2,51]],
+    // Africa
+    [[-18,15],[-15,11],[-13,9],[0,5],[10,5],[15,0],[32,-25],[30,-35],[18,-35],[10,-25],[0,-10],[-5,5],[-18,15]],
+    // Asia simplified
+    [[35,70],[50,72],[65,68],[80,72],[100,70],[130,72],[140,55],[140,35],[120,25],[105,10],[95,5],[80,10],[65,22],[55,24],[45,38],[30,38],[25,42],[22,65],[35,70]],
+    // Australia
+    [[115,-22],[130,-12],[145,-15],[150,-22],[150,-35],[140,-38],[130,-33],[115,-22]],
+  ];
+
+  function project(lng, lat, rot) {
+    const lngR = (lng + rot) * Math.PI / 180;
+    const latR = lat * Math.PI / 180;
+    const x = R * Math.cos(latR) * Math.sin(lngR);
+    const y = -R * Math.sin(latR);
+    const z = R * Math.cos(latR) * Math.cos(lngR);
+    return { x: cx + x, y: cy + y, z };
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Globe sphere
+    const grad = ctx.createRadialGradient(cx - R*0.3, cy - R*0.3, R*0.05, cx, cy, R);
+    grad.addColorStop(0, '#1a2d45');
+    grad.addColorStop(1, '#0a0e14');
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI*2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Globe border
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(0,212,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Lat/lng grid lines
+    ctx.strokeStyle = 'rgba(0,212,255,0.06)';
+    ctx.lineWidth = 0.5;
+
+    // Latitude lines
+    for (let lat = -60; lat <= 60; lat += 30) {
+      ctx.beginPath();
+      let first = true;
+      for (let lng = -180; lng <= 180; lng += 5) {
+        const p = project(lng, lat, rotation);
+        if (p.z > 0) {
+          first ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+          first = false;
+        } else { first = true; }
+      }
+      ctx.stroke();
+    }
+
+    // Longitude lines
+    for (let lng = 0; lng < 360; lng += 30) {
+      ctx.beginPath();
+      let first = true;
+      for (let lat = -90; lat <= 90; lat += 5) {
+        const p = project(lng, lat, rotation);
+        if (p.z > 0) {
+          first ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+          first = false;
+        } else { first = true; }
+      }
+      ctx.stroke();
+    }
+
+    // Continents
+    CONTINENTS.forEach(poly => {
+      ctx.beginPath();
+      let started = false;
+      poly.forEach(([lng, lat]) => {
+        const p = project(lng, lat, rotation);
+        if (p.z > 0) {
+          started ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y);
+          started = true;
+        } else { started = false; }
+      });
+      ctx.strokeStyle = 'rgba(0,212,255,0.25)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    // Points
+    const allPoints = userPoint ? [...POINTS, { ...userPoint, status:'valid' }] : POINTS;
+    allPoints.forEach(pt => {
+      const p = project(pt.lng, pt.lat, rotation);
+      if (p.z <= 0) return;
+
+      const r = 5;
+      // Glow
+      const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r*3);
+      glow.addColorStop(0, pt.color.replace(')', ',0.5)').replace('var(--','rgba(').replace('green','0,229,160').replace('red','255,71,87').replace('amber','255,184,48').replace('accent2','255,107,53').replace('accent','0,212,255'));
+      glow.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r*3, 0, Math.PI*2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+      ctx.fillStyle = pt.color.includes('var') ? getComputedStyle(document.documentElement).getPropertyValue(pt.color.slice(4,-1).trim()) || '#fff' : pt.color;
+
+      // map css vars manually
+      const colorMap = {
+        'var(--green)':'#00e5a0','var(--red)':'#ff4757',
+        'var(--amber)':'#ffb830','var(--accent2)':'#ff6b35','var(--accent)':'#00d4ff'
+      };
+      ctx.fillStyle = colorMap[pt.color] || '#fff';
+      ctx.fill();
+    });
+
+    rotation += 0.15;
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+}
+
+// ─── SCROLL FADE ────────────────────────────────────────────────────────────
+function initScrollFade() {
+  const els = document.querySelectorAll('.fade-in');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  els.forEach(el => io.observe(el));
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  buildBatch();
+  initGlobe();
+  initScrollFade();
+  validatePoint();
+});
+</script>
+</body>
+</html>
