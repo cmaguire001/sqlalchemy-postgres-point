@@ -1,0 +1,12 @@
+{
+  "batch_summary": {
+    "total_rows": 5826,
+    "likely_swapped_pct": 0.0,
+    "invalid_pct": 0.0,
+    "ambiguous_pct": 0.0,
+    "flagged_rows": []
+  },
+  "roundtrip_failures": [],
+  "strict_warnings": [],
+  "low_confidence": []
+}
