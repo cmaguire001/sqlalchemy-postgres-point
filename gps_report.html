@@ -55,22 +55,7 @@
     color: #fff;
     letter-spacing: -0.5px;
   }
-<a href="/sqlalchemy-postgres-point/" style="
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding:10px 14px;
-  background: rgba(0,212,255,0.15);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  text-decoration:none;
-  border-radius:6px;
-  font-family: var(--mono);
-  font-size: 12px;
-  backdrop-filter: blur(6px);
-">
-  ⬅ MAIN
-</a>
+
   header .sub {
     font-size: 13px;
     color: var(--muted);
@@ -275,6 +260,24 @@
   <h1>GPS Validation Report</h1>
   <div class="sub">35 passed · 1 skipped · 91% coverage · 10.13s</div>
 </header>
+
+<a href="/sqlalchemy-postgres-point/" style="
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding:10px 14px;
+  background: rgba(0,212,255,0.15);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  text-decoration:none;
+  border-radius:6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+">
+  ⬅ MAIN
+</a>
 
 <div class="tabs">
   <button class="tab active" onclick="show('summary')">SUMMARY</button>
