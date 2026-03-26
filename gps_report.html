@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPS Validation Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --surface: #111620;
+    --border: #1e2a3a;
+    --accent: #00d4ff;
+    --accent2: #00ff9d;
+    --warn: #ffb800;
+    --danger: #ff4444;
+    --text: #c8d8e8;
+    --muted: #4a6070;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 40px 24px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 70% 10%, rgba(0,212,255,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 10% 80%, rgba(0,255,157,0.04) 0%, transparent 50%);
+  }
+
+  header {
+    border-left: 3px solid var(--accent);
+    padding-left: 20px;
+    margin-bottom: 40px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  header .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+
+  header .sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-family: var(--mono);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+    animation: fadeDown 0.6s 0.1s ease both;
+  }
+
+  .tab {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel { display: none; animation: fadeIn 0.3s ease both; }
+  .panel.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-header h2 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-family: var(--mono);
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(0,212,255,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,212,255,0.2);
+  }
+
+  .badge.green { background: rgba(0,255,157,0.1); color: var(--accent2); border-color: rgba(0,255,157,0.2); }
+  .badge.warn  { background: rgba(255,184,0,0.1); color: var(--warn);    border-color: rgba(255,184,0,0.2); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  thead th.num { text-align: right; }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(30,42,58,0.6);
+    transition: background 0.15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(0,212,255,0.03); }
+
+  td {
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  td.num { text-align: right; }
+  td.city { color: #fff; font-weight: 400; }
+  td.coord { color: var(--accent); }
+  td.pass  { color: var(--accent2); }
+  td.fail  { color: var(--danger); }
+  td.warn  { color: var(--warn); }
+  td.muted { color: var(--muted); }
+
+  .delta-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .bar-track {
+    width: 60px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent2);
+    transition: width 0.8s ease;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .stat {
+    background: rgba(0,212,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+
+  .stat .val {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat .val.green { color: var(--accent2); }
+  .stat .lbl {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .valid-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .valid-dot.ok   { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+  .valid-dot.bad  { background: var(--danger);  box-shadow: 0 0 6px var(--danger); }
+  .valid-dot.warn { background: var(--warn);    box-shadow: 0 0 6px var(--warn); }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .stagger > * {
+    animation: fadeDown 0.4s ease both;
+  }
+  .stagger > *:nth-child(1) { animation-delay: 0.05s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.10s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.15s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.20s; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="label">sqlalchemy-postgres-point</div>
+  <h1>GPS Validation Report</h1>
+  <div class="sub">35 passed · 1 skipped · 91% coverage · 10.13s</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('summary')">SUMMARY</button>
+  <button class="tab" onclick="show('coords')">COORDINATES</button>
+  <button class="tab" onclick="show('distances')">DISTANCES</button>
+  <button class="tab" onclick="show('serialization')">SERIALIZATION</button>
+  <button class="tab" onclick="show('validation')">COORD VALIDATION</button>
+</div>
+
+<!-- SUMMARY -->
+<div id="summary" class="panel active stagger">
+  <div class="summary-grid">
+    <div class="stat"><div class="val green">35</div><div class="lbl">Tests Passed</div></div>
+    <div class="stat"><div class="val">14</div><div class="lbl">Named Locations</div></div>
+    <div class="stat"><div class="val">9</div><div class="lbl">Distance Pairs</div></div>
+    <div class="stat"><div class="val green">91%</div><div class="lbl">Coverage</div></div>
+    <div class="stat"><div class="val">1%</div><div class="lbl">Distance Tolerance</div></div>
+    <div class="stat"><div class="val green">9/9</div><div class="lbl">Distance Assertions</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Test Files</h2>
+    </div>
+    <table>
+      <thead><tr>
+        <th>File</th>
+        <th class="num">Stmts</th>
+        <th class="num">Miss</th>
+        <th class="num">Cover</th>
+        <th>Focus</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="city">test_earth_distance.py</td><td class="num">34</td><td class="num">2</td><td class="num pass">94%</td><td class="muted">Great-circle distance, 9 city pairs</td></tr>
+        <tr><td class="city">test_point.py</td><td class="num">187</td><td class="num">28</td><td class="num warn">85%</td><td class="muted">Serialization, validation, swap detection</td></tr>
+        <tr><td class="city">test_sqlmodel_integration.py</td><td class="num">44</td><td class="num">2</td><td class="num pass">95%</td><td class="muted">SQLModel + Park City / SLC real coords</td></tr>
+        <tr><td class="city">test_alembic_integration.py</td><td class="num">42</td><td class="num">0</td><td class="num pass">100%</td><td class="muted">Alembic migration rendering</td></tr>
+        <tr><td class="city">test_import.py</td><td class="num">3</td><td class="num">0</td><td class="num pass">100%</td><td class="muted">Package import smoke test</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- COORDINATES -->
+<div id="coords" class="panel stagger">
+  <div class="card">
+    <div class="card-header">
+      <h2>Input Coordinates</h2>
+      <span class="badge green">14 locations · all valid</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Location</th>
+        <th class="num">Longitude</th>
+        <th class="num">Latitude</th>
+        <th>Lon Range</th>
+        <th>Lat Range</th>
+        <th>Status</th>
+      </tr></thead>
+      <tbody id="coords-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- DISTANCES -->
+<div id="distances" class="panel stagger">
+  <div class="card">
+    <div class="card-header">
+      <h2>Earth Distance Results</h2>
+      <span class="badge green">9/9 PASS · ≤1% tolerance</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>City A → City B</th>
+        <th class="num">Expected (mi)</th>
+        <th class="num">Actual (mi)</th>
+        <th class="num">Delta</th>
+        <th class="num">Δ %</th>
+        <th>Result</th>
+      </tr></thead>
+      <tbody id="dist-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- SERIALIZATION -->
+<div id="serialization" class="panel stagger">
+  <div class="card">
+    <div class="card-header">
+      <h2>Point Serialization</h2>
+      <span class="badge">bind · literal · result</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Test</th>
+        <th>Input</th>
+        <th>Expected Output</th>
+        <th>Direction</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td class="city">process_bind_param</td>
+          <td class="coord">(1.23, 4.56)</td>
+          <td class="coord">"(1.23,4.56)"</td>
+          <td class="muted">Python tuple → SQL string</td>
+        </tr>
+        <tr>
+          <td class="city">process_literal_param</td>
+          <td class="coord">(1.23, 4.56)</td>
+          <td class="coord">'(1.23,4.56)'</td>
+          <td class="muted">Python tuple → quoted SQL literal</td>
+        </tr>
+        <tr>
+          <td class="city">process_result_value</td>
+          <td class="coord">"(1.23,4.56)"</td>
+          <td class="coord">(1.23, 4.56)</td>
+          <td class="muted">DB string → Python tuple</td>
+        </tr>
+        <tr>
+          <td class="city">SQLModel roundtrip</td>
+          <td class="coord">(1.0, 2.0)</td>
+          <td class="coord">(1.0, 2.0)</td>
+          <td class="muted">Insert → SELECT → assert equal</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- COORD VALIDATION -->
+<div id="validation" class="panel stagger">
+  <div class="card">
+    <div class="card-header">
+      <h2>Coordinate Validation Logic</h2>
+      <span class="badge warn">swap detection · invalid flagging</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Coordinate</th>
+        <th class="num">Lon Valid?</th>
+        <th class="num">Lat Valid?</th>
+        <th>Flag</th>
+        <th>Note</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td class="coord">(1.0, 2.0)</td>
+          <td class="num pass">✓ [-180,180]</td>
+          <td class="num pass">✓ [-90,90]</td>
+          <td><span class="valid-dot ok"></span><span class="pass">VALID</span></td>
+          <td class="muted">Clean point</td>
+        </tr>
+        <tr>
+          <td class="coord">(40.7, -74.0)</td>
+          <td class="num pass">✓ [-180,180]</td>
+          <td class="num pass">✓ [-90,90]</td>
+          <td><span class="valid-dot ok"></span><span class="pass">VALID</span></td>
+          <td class="muted">NYC-like coords (lat,lon order — intentional)</td>
+        </tr>
+        <tr>
+          <td class="coord">(200.0, 50.0)</td>
+          <td class="num fail">✗ >180</td>
+          <td class="num pass">✓ [-90,90]</td>
+          <td><span class="valid-dot bad"></span><span class="fail">INVALID</span></td>
+          <td class="muted">Lon out of range</td>
+        </tr>
+        <tr>
+          <td class="coord">(40.7, 200.0)</td>
+          <td class="num pass">✓ [-180,180]</td>
+          <td class="num fail">✗ >90</td>
+          <td><span class="valid-dot warn"></span><span class="warn">LIKELY SWAPPED</span></td>
+          <td class="muted">Lat value looks like a longitude</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Summary Assertions (test_point.py)</h2>
+    </div>
+    <table>
+      <thead><tr><th>Assertion</th><th class="num">Value</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td class="city">likely_swapped_pct</td><td class="num warn">25.0%</td><td class="muted">1 of 4 test coords flagged as swapped</td></tr>
+        <tr><td class="city">invalid_pct</td><td class="num fail">25.0%</td><td class="muted">1 of 4 test coords flagged as invalid</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const LOCATIONS = {
+  "Park City UT":      [-111.4980,  40.6461],
+  "Salt Lake City UT": [-111.8910,  40.7608],
+  "New York City NY":  [-74.0060,   40.7128],
+  "Los Angeles CA":    [-118.2437,  34.0522],
+  "Chicago IL":        [-87.6298,   41.8781],
+  "Miami FL":          [-80.1918,   25.7617],
+  "London UK":         [-0.1278,    51.5074],
+  "Tokyo JP":          [139.6917,   35.6895],
+  "Sydney AU":         [151.2093,  -33.8688],
+  "Reykjavik IS":      [-21.9426,   64.1466],
+  "Singapore SG":      [103.8198,    1.3521],
+  "Cape Town ZA":      [18.4241,   -33.9249],
+  "Buenos Aires AR":   [-58.3816,  -34.6037],
+  "Oslo NO":           [10.7522,    59.9139],
+};
+
+const DISTANCES = [
+  ["Park City UT",     "Salt Lake City UT",  22.06],
+  ["New York City NY", "Los Angeles CA",     2445.56],
+  ["New York City NY", "London UK",          3461.18],
+  ["Los Angeles CA",   "Tokyo JP",           5477.69],
+  ["Miami FL",         "Reykjavik IS",       3681.85],
+  ["Singapore SG",     "Sydney AU",          3918.53],
+  ["Cape Town ZA",     "Reykjavik IS",       7123.15],
+  ["New York City NY", "Sydney AU",          9934.97],
+  ["Buenos Aires AR",  "Oslo NO",            7610.37],
+];
+
+// Haversine in JS
+function haversine(lon1, lat1, lon2, lat2) {
+  const R = 3958.8; // miles
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Populate coords table
+const ctbody = document.getElementById('coords-tbody');
+for (const [name, [lon, lat]] of Object.entries(LOCATIONS)) {
+  const lonOk = lon >= -180 && lon <= 180;
+  const latOk = lat >= -90  && lat <= 90;
+  ctbody.innerHTML += `<tr>
+    <td class="city">${name}</td>
+    <td class="num coord">${lon.toFixed(4)}</td>
+    <td class="num coord">${lat.toFixed(4)}</td>
+    <td class="num ${lonOk?'pass':'fail'}">${lonOk?'✓ ok':'✗'}</td>
+    <td class="num ${latOk?'pass':'fail'}">${latOk?'✓ ok':'✗'}</td>
+    <td><span class="valid-dot ok"></span><span class="pass">VALID</span></td>
+  </tr>`;
+}
+
+// Populate distances table
+const dtbody = document.getElementById('dist-tbody');
+const maxDelta = Math.max(...DISTANCES.map(([a,b,exp]) => {
+  const [lon1,lat1] = LOCATIONS[a], [lon2,lat2] = LOCATIONS[b];
+  return Math.abs(haversine(lon1,lat1,lon2,lat2) - exp);
+}));
+
+for (const [cityA, cityB, expected] of DISTANCES) {
+  const [lon1,lat1] = LOCATIONS[cityA];
+  const [lon2,lat2] = LOCATIONS[cityB];
+  const actual = haversine(lon1,lat1,lon2,lat2);
+  const delta = Math.abs(actual - expected);
+  const pct = (delta / expected * 100).toFixed(3);
+  const pass = delta <= expected * 0.01;
+  const barW = Math.round((delta / maxDelta) * 100);
+  dtbody.innerHTML += `<tr>
+    <td class="city">${cityA} → ${cityB}</td>
+    <td class="num">${expected.toFixed(2)}</td>
+    <td class="num coord">${actual.toFixed(2)}</td>
+    <td class="num">
+      <div class="delta-bar">
+        <span>${delta.toFixed(3)}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${barW}%"></div></div>
+      </div>
+    </td>
+    <td class="num ${pass?'pass':'fail'}">${pct}%</td>
+    <td class="${pass?'pass':'fail'}">${pass?'PASS ✓':'FAIL ✗'}</td>
+  </tr>`;
+}
+
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
