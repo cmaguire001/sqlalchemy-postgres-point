@@ -271,11 +271,47 @@ Four offline processor tests added in `tests/test_point_edge_cases.py`:
 4. **Scientific notation** – documents a known bug where PostgreSQL's `1e-10` output breaks the result processor regex (`xfail`); includes the one-line fix
 5. **(Lat, Lng) swap detection** – passing arguments in the wrong order (`Point(lng, lat)`) is a common error. The library’s validation can often catch this if the longitude value is outside the valid latitude range of [-90, 90].
 
-
-## 3.35.2026 GPS Validation Improvements
+## 3.25.2026 GPS Validation Improvements
 
 Fixed validate_points batch summary so swap-detected points are not double-counted as invalid — likely_swapped_pct and invalid_pct are now mutually exclusive
 Confirmed result_processor regex already handles PostgreSQL scientific notation (1e-10) — removed stale xfail markers and promoted tests to passing
 Registered integration pytest mark to silence warnings
 Removed duplicate test file
 
+## 3.26.2026
+
+Real-World Audit — Utah Ski Resort Data
+----------------------------------------
+
+To validate the library against a real dataset, we ingested 5,826 OpenStreetMap
+features covering every ski lift, piste, and resort area in Utah into a PostgreSQL
+database and ran a full audit using every public function in this library.
+
+**Data pipeline:**
+
+1. Queried [Overpass Turbo](https://overpass-turbo.eu) for all `aerialway`, `piste:type`,
+   and `landuse=winter_sports` features within Utah's bounding box
+2. Exported as GeoJSON (~10 MB, 5,826 features)
+3. `ingest_utah_ski.py` — parsed the GeoJSON, converted all geometry types to a
+   single representative `POINT` via centroid, inserted into a `ski_features` table
+   with a native `POINT` column
+4. `audit_ski_points.py` — pulled all rows back out and ran the full library surface:
+
+| Section | What was tested | Result |
+|---|---|---|
+| `validate_points()` | Batch summary across all 5,826 points | 100% valid |
+| `analyze_point()` | Per-row confidence scoring | All scored 0.70-0.79 (unambiguous Utah longitudes) |
+| `PointType` bind + result | Round-trip every point through both processors | 0 failures, 0 precision drift |
+| `PointType(strict=True)` | Ambiguous coordinate detection | 0 warnings (lon ~-111 is outside [-90,90]) |
+| `earth_distance()` | Live SQLAlchemy ORM query against Neon PostgreSQL | Returned correct nearest features to Park City base |
+
+**Why confidence scores all land at 0.70-0.79:** Utah longitudes (~-109 to -114) are
+well outside the ambiguous range of [-90, 90], so the library can confidently determine
+axis order on every point. A European Alps dataset would produce ambiguous scores since
+both latitude and longitude values fall in the same range.
+
+Run the audit yourself:
+```bash
+python ingest_utah_ski.py   # loads Utahski.geojson into your database
+python audit_ski_points.py  # runs full library validation and writes audit_report.json
+```
