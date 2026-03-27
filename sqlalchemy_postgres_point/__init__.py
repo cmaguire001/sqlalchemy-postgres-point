@@ -5,6 +5,7 @@ Exports:
 """
 
 from .point import PointType, PointValidationResult, analyze_point, validate_points
+from .infer import infer_axis_order
 
 __all__ = [
     "PointType",
@@ -12,3 +13,5 @@ __all__ = [
     "analyze_point",
     "validate_points",
 ]
+from .infer import infer_axis_order
+from .infer import infer_axis_order
