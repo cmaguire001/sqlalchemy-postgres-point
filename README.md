@@ -314,4 +314,6 @@ Run the audit yourself:
 ```bash
 python ingest_utah_ski.py   # loads Utahski.geojson into your database
 python audit_ski_points.py  # runs full library validation and writes audit_report.json
+
+**Added a git page URL for a demo https://cmaguire001.github.io/sqlalchemy-postgres-point/   
 ```
